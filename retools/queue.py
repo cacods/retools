@@ -241,7 +241,7 @@ class QueueManager(object):
         job_id = uuid.uuid4().hex
         events = self.global_events.copy()
         if job in self.job_events:
-            for k, v in self.job_events[job].items():
+            for k, v in list(self.job_events[job].items()):
                 events.setdefault(k, []).extend(v)
 
         job_dct = {
@@ -325,7 +325,7 @@ class Job(object):
 
         """
         events = {}
-        for k, v in event_dict.items():
+        for k, v in list(event_dict.items()):
             funcs = []
             for name in v:
                 mod_name, func_name = name.split(':')
@@ -349,7 +349,7 @@ class Job(object):
                 result = self.func(**self.kwargs)
             self.run_event('job_postrun', result=result)
             return True
-        except Exception, exc:
+        except Exception as exc:
             self.run_event('job_failure', exc=exc)
             return False
 

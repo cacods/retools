@@ -19,7 +19,7 @@ object::
     CacheRegion.add_region("short_term", expires=60)
 
 """
-import cPickle
+import pickle
 import time
 from datetime import date
 
@@ -141,7 +141,7 @@ class CacheRegion(object):
         # Locate the longest expiration of a region, so we can set
         # the created value far enough back to force a refresh
         longest_expire = max(
-              [x['expires'] for x in CacheRegion.regions.values()])
+              [x['expires'] for x in list(CacheRegion.regions.values())])
         new_created = time.time() - longest_expire - 3600
 
         for ns in namespaces:
@@ -218,7 +218,7 @@ class CacheRegion(object):
             # We have a result and were told not to regenerate so
             # we always return it immediately regardless of expiration,
             # or its not expired
-            return cPickle.loads(result['value'])
+            return pickle.loads(result['value'])
 
         if not result and not regenerate:
             # No existing value, but we were told not to regenerate it and
@@ -238,13 +238,13 @@ class CacheRegion(object):
                 now = time.time()
                 if result and 'value' in result and \
                    now - float(result['created']) < expires:
-                    return cPickle.loads(result['value'])
+                    return pickle.loads(result['value'])
 
                 value = callable()
 
                 p = redis.pipeline(transaction=True)
                 p.hmset(keys.redis_key, {'created': now,
-                                    'value': cPickle.dumps(value)})
+                                    'value': pickle.dumps(value)})
                 p.expire(keys.redis_key, redis_expiration)
                 cls._add_tracking(p, region, namespace, key)
                 if statistics:
@@ -254,7 +254,7 @@ class CacheRegion(object):
                     p.execute()
         except LockTimeout:
             if result:
-                return cPickle.loads(result['value'])
+                return pickle.loads(result['value'])
             else:
                 # log some sort of error?
                 return NoneMarker
@@ -330,7 +330,7 @@ def invalidate_callable(callable, *args):
         try:
             cache_key = " ".join(map(str, args))
         except UnicodeEncodeError:
-            cache_key = " ".join(map(unicode, args))
+            cache_key = " ".join(map(str, args))
         redis.hset('retools:%s:%s:%s' % (region, namespace, cache_key),
                    'created', new_created)
     else:
@@ -422,12 +422,12 @@ def cache_region(region, *deco_args, **kwargs):
                 try:
                     cache_key = " ".join(map(str, args[1:]))
                 except UnicodeEncodeError:
-                    cache_key = " ".join(map(unicode, args[1:]))
+                    cache_key = " ".join(map(str, args[1:]))
             else:
                 try:
                     cache_key = " ".join(map(str, args))
                 except UnicodeEncodeError:
-                    cache_key = " ".join(map(unicode, args))
+                    cache_key = " ".join(map(str, args))
 
             def go():
                 return func(*args)

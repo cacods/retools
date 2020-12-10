@@ -1,14 +1,14 @@
 """Utility functions"""
 import inspect
-from itertools import izip
+
 
 
 def func_namespace(func, deco_args):
     """Generates a unique namespace for a function"""
     kls = None
     if hasattr(func, 'im_func'):
-        kls = func.im_class
-        func = func.im_func
+        kls = func.__self__.__class__
+        func = func.__func__
 
     deco_key = " ".join(map(str, deco_args))
     if kls:
@@ -55,7 +55,7 @@ def with_nested_contexts(context_managers, func, args, kwargs):
 
 def chunks(iterable, n):
     args = [iter(iterable)] * n
-    return izip(*args)
+    return zip(*args)
 
 
 def flip_pairs(l):
